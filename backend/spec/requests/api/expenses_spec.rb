@@ -61,6 +61,25 @@ RSpec.describe "Api::Expenses", type: :request do
     end
 
     context "with invalid parameters" do
+      it "rejects future dates" do
+        invalid_params = {
+          expense: {
+            description: "Advance purchase",
+            amount: 100.00,
+            category_id: food_category.id,
+            date: Date.today + 1.day
+          }
+        }
+
+        expect {
+          post "/api/expenses", params: invalid_params, as: :json
+        }.not_to change(Expense, :count)
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        json = JSON.parse(response.body)
+        expect(json["errors"]).to include("Date cannot be in the future. Please choose today or an earlier date.")
+      end
+
       it "with negative amounts" do
         invalid_params = {
           expense: {
