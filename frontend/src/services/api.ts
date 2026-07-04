@@ -6,6 +6,14 @@ import { Category, Expense, ExpenseFormData } from "../types";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
+async function getErrorMessage(
+  response: Response,
+  fallbackMessage: string,
+): Promise<string> {
+  const errorData = await response.json().catch(() => null);
+  return errorData?.errors?.join(", ") || fallbackMessage;
+}
+
 /**
  * Fetch all expenses
  */
@@ -129,7 +137,7 @@ export async function createExpense(data: ExpenseFormData): Promise<Expense> {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to create expense");
+    throw new Error(await getErrorMessage(response, "Failed to create expense"));
   }
 
   return response.json();
@@ -169,7 +177,7 @@ export async function updateExpense(
   });
 
   if (!response.ok) {
-    throw new Error("Failed to update expense");
+    throw new Error(await getErrorMessage(response, "Failed to update expense"));
   }
 
   return response.json();

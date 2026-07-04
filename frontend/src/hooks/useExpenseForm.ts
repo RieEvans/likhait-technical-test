@@ -11,19 +11,31 @@ interface UseExpenseFormProps {
   onSubmit: (data: ExpenseFormData) => Promise<void>;
 }
 
+const getTodayDate = () => formatDate(new Date());
+
+const isFutureDate = (date: string) => {
+  if (!date) {
+    return false;
+  }
+
+  return date > getTodayDate();
+};
+
 export function useExpenseForm({ initialData, onSubmit }: UseExpenseFormProps) {
   const [formData, setFormData] = useState<ExpenseFormData>({
     amount: initialData?.amount || "",
     description: initialData?.description || "",
     category: initialData?.category || "",
-    date: initialData?.date || formatDate(new Date()),
+    date: initialData?.date || getTodayDate(),
   });
 
   const [errors, setErrors] = useState<Partial<ExpenseFormData>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleChange = (field: keyof ExpenseFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    setSubmitError(null);
     // Clear error for this field when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -47,6 +59,8 @@ export function useExpenseForm({ initialData, onSubmit }: UseExpenseFormProps) {
 
     if (!formData.date) {
       newErrors.date = "Date is required";
+    } else if (isFutureDate(formData.date)) {
+      newErrors.date = "Expense date cannot be in the future. Please choose today or an earlier date.";
     }
 
     setErrors(newErrors);
@@ -61,6 +75,7 @@ export function useExpenseForm({ initialData, onSubmit }: UseExpenseFormProps) {
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       await onSubmit(formData);
       // Reset form on success
@@ -68,11 +83,16 @@ export function useExpenseForm({ initialData, onSubmit }: UseExpenseFormProps) {
         amount: "",
         description: "",
         category: "",
-        date: formatDate(new Date()),
+        date: getTodayDate(),
       });
       setErrors({});
     } catch (error) {
       console.error("Form submission error:", error);
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Unable to save expense. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -83,15 +103,18 @@ export function useExpenseForm({ initialData, onSubmit }: UseExpenseFormProps) {
       amount: initialData?.amount || "",
       description: initialData?.description || "",
       category: initialData?.category || "",
-      date: initialData?.date || formatDate(new Date()),
+      date: initialData?.date || getTodayDate(),
     });
     setErrors({});
+    setSubmitError(null);
   };
 
   return {
     formData,
     errors,
     isSubmitting,
+    submitError,
+    maxDate: getTodayDate(),
     handleChange,
     handleSubmit,
     resetForm,
