@@ -5,8 +5,10 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies and explicitly add Rollup's musl binary.
+# npm can skip this optional package on Alpine, which breaks Vite at runtime.
+RUN npm install --include=optional && \
+    npm install --no-save @rollup/rollup-linux-x64-musl@$(node -p "require('./node_modules/rollup/package.json').optionalDependencies['@rollup/rollup-linux-x64-musl']")
 
 # Copy the rest of the application
 COPY . .
